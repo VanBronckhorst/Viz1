@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chicago</title>
+     <script src="http://d3js.org/d3.v3.js"></script>
+ </head>
+  <body bgcolor="#000000">
+        <div id="viz" style="width:100%; height:100%; float:left; background: #888"></div>
+ </div> 
+  </div>
+<script>
+    var   svg = d3.select("#viz")
+        .append("svg:svg")
+        .attr("width", 1200)
+        .attr("height", 800);
+
+    d3.json("chicago_areas_1.json", function(json) {
+            var center = d3.geo.centroid(json)
+            var scale  = 80000;
+            var offset = [400, 400];
+            var projection = d3.geo.mercator().scale(scale).center(center)
+                .translate(offset);
+            var path = d3.geo.path().projection(projection);
+
+            svg.selectAll("path")
+               .data(json.features)
+               .enter()
+               .append("path")
+               .attr("d", path);
+    });
+</script>
+  </body>
+</html>
