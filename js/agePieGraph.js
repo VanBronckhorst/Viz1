@@ -7,6 +7,7 @@ function agePieGraph(where, stateToDisplay){
 	this.compare = false;
 	this.percentage= true;
 	this.ageThreshold = 21;
+	this.bSize = 10
 	this.state=stateToDisplay
 	
 	var that = this;
@@ -21,7 +22,7 @@ function agePieGraph(where, stateToDisplay){
 			
 			for(i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
-					this.d = popAgeSex["states"][i];
+					this.d = popAgeSex["states"][i]["buckets"];
 				}
 			}
 			
@@ -39,19 +40,20 @@ function agePieGraph(where, stateToDisplay){
 			var no=0;
 			var yes=0;
 			
+			
 			if (this.d != NaN){
-				var maxY = Object.keys(this.d).length-1
+				//var maxY = Object.keys(this.d).length-1
 				if (this.buckets == false){
-					for(i=0;i<maxY;i++){
+					for(i=0;i<this.d.length;i++){
 						
 						if (this.percentage){
-							buck = parseFloat(this.d[i.toString()]["perc"])
+							buck = parseFloat(this.d[i]["perc"])
 						}else{
-							buck = parseInt(this.d[i.toString()]["m"]) + parseInt(this.d[i.toString()]["f"])
+							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
 						}
-						this.usedData.push({key: i , value:buck})
+						this.usedData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
 						
-						if (i<this.ageThreshold){
+						if (this.d[i]["start"]<=this.ageThreshold){
 							no+=buck
 						}else{
 							yes+=buck
@@ -59,32 +61,65 @@ function agePieGraph(where, stateToDisplay){
 
 						}
 				}else{
-					for(i=0;i<maxY/10;i++){
-						buck = 0
-						for(j=0;j<=9;j++){
-							if (i*10+j<maxY){
-								if (this.percentage){
-									var add= parseFloat(this.d[(i*10+j).toString()]["perc"])
-									buck += add
-									if ((i*10+j)<this.ageThreshold){
-										no+= add
-									}else{
-										yes+=add
-									}
-								}else{
-									var add = parseInt(this.d[(i*10+j).toString()]["m"]) + parseInt(this.d[(i*10+j).toString()]["f"])
-									buck += add 
-									if ((i*10+j)<this.ageThreshold){
-										no+= add
-									}else{
-										yes+=add
-										}
-									}
-								}
-							}
-						this.usedData.push({key: i*10+" - "+((i+1)*10-1), value: (buck) })
-						
+					var tempBuckets = [];
+					var bucketMax = [];
+					for (var i=0;i<150/this.bSize;i++){
+						tempBuckets[i]=0
+						bucketMax[i]=0
 					}
+					
+					for(var i=0;i < this.d.length;i++){
+						if (this.percentage){
+							buck = parseFloat(this.d[i]["perc"])
+						}else{
+							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
+						}
+					    if (this.d[i]["span"]==1){
+						    var bucketNumber = Math.floor(this.d[i]["start"]/this.bSize)
+						    tempBuckets[bucketNumber] += buck
+						    if (this.d[i]["start"] > bucketMax[bucketNumber]){
+							    bucketMax[bucketNumber]=this.d[i]["start"]
+						    }
+						    if (this.d[i]["start"]<=this.ageThreshold){
+								no+=buck
+							}else{
+								yes+=buck
+							}
+					    }else{
+						    if (buck>this.max){
+								this.max=buck;
+							}
+							if (buck<this.min){
+								this.min=buck;
+							}
+							if (this.d[i]["start"]<=this.ageThreshold){
+								no+=buck
+							}else{
+								yes+=buck
+							}
+						    this.usedData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
+					    }
+					}
+					
+					for (var i=0;i<tempBuckets.length;i++){
+						if (tempBuckets[i]>0){
+							if (tempBuckets[i]>this.max){
+								this.max=tempBuckets[i];
+							}
+							if (tempBuckets[i]<this.min){
+								this.min=tempBuckets[i];
+							}
+							
+							this.usedData.push({start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)})
+						}
+					}
+					
+					//Corrector code, put last bucket last
+					
+					var x = this.usedData[0]
+					this.usedData.splice(0, 1)
+					this.usedData.push(x)
+
 					
 				}
 			}
@@ -93,7 +128,7 @@ function agePieGraph(where, stateToDisplay){
 			this.highData.push(yes);
 			
 			
-			var pie = d3.layout.pie().value(function(d) { return d.value; }).sort(null)
+			var pie = d3.layout.pie().value(function(d) { return d.value; }).sort(function(d,d2){return d.start-d2.start})
 			this.pieData = pie(this.usedData)	
 			var highPie = d3.layout.pie().value(function(d) { return d }).sort(null)
 			this.pieHighData = highPie(this.highData)
@@ -125,7 +160,11 @@ function agePieGraph(where, stateToDisplay){
 		    .attr("text-anchor", "middle")
 		    .attr("font-size","250%")
 		    .text(function(d,i) {
-		        return i%3==0?that.usedData[i].key:"";
+			    if (d.span==1){
+		       		return i%3==0?that.usedData[i].start:"";
+		       	}else{
+			       	return that.usedData[i].start+"-"+(that.usedData[i].start+that.usedData[i].span);
+		       	}
 		    });
 		    
 		    // INNER PIE

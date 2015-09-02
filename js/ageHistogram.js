@@ -10,6 +10,7 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.parent = parent
 	this.barColor = "#FF9900"
 	this.ageThreshold = 21;
+	this.bSize = 10
 	this.state=stateToDisplay;
 	
 	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad));
@@ -18,7 +19,7 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.makeData= function(){
 		for(var i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
-					this.d = popAgeSex["states"][i];
+					this.d = popAgeSex["states"][i]["buckets"];
 				}
 			}
 			
@@ -27,21 +28,22 @@ function ageHistogram(where, stateToDisplay,parent){
 			this.min = Infinity
 			var buck = 0
 			
+			
+			
 			this.usedData = []
 			
 			if (this.d != NaN){
-				var maxY = Object.keys(this.d).length-1
+				//var maxY = Object.keys(this.d).length-1
 				if (this.buckets == false){
 					
-					for(var i=0;i < maxY;i++){
+					for(var i=0;i < this.d.length;i++){
 						if (this.percentage){
-							console.log(i);
-							buck = parseFloat(this.d[i.toString()]["perc"])
+							buck = parseFloat(this.d[i]["perc"])
 						}else{
-							buck = parseInt(this.d[i.toString()]["m"]) + parseInt(this.d[i.toString()]["f"])
+							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
 						}
 						
-						this.usedData.push({key: i , value: buck})
+						this.usedData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
 						if (buck>this.max){
 							this.max=buck;
 						}
@@ -50,25 +52,49 @@ function ageHistogram(where, stateToDisplay,parent){
 						}
 					}
 				}else{
-					for(var i=0;i< maxY / 10;i++){
-						buck = 0
-						for(j=0;j<=9;j++){
-							if ((i*10+j)< maxY){
-								if (this.percentage){
-									buck += parseFloat(this.d[(i*10+j).toString()]["perc"])
-								}else{
-									buck += parseInt(this.d[(i*10+j).toString()]["m"]) + parseInt(this.d[(i*10+j).toString()]["f"])
-								}
+					var tempBuckets = [];
+					var bucketMax = [];
+					for (var i=0;i<150/this.bSize;i++){
+						tempBuckets[i]=0
+						bucketMax[i]=0
+					}
+					
+					for(var i=0;i < this.d.length;i++){
+						if (this.percentage){
+							buck = parseFloat(this.d[i]["perc"])
+						}else{
+							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
+						}
+					    if (this.d[i]["span"]==1){
+						    var bucketNumber = Math.floor(this.d[i]["start"]/this.bSize)
+						    tempBuckets[bucketNumber] += buck
+						    if (this.d[i]["start"] > bucketMax[bucketNumber]){
+							    bucketMax[bucketNumber]=this.d[i]["start"]
+						    }
+					    }else{
+						    if (buck>this.max){
+								this.max=buck;
 							}
-						}
-						this.usedData.push({key: i*10+" - "+((i+1)*10-1), value: (buck) })
-						if (buck>this.max){
-							this.max=buck;
-						}
-						if (buck<this.min){
-							this.min=buck;
+							if (buck<this.min){
+								this.min=buck;
+							}
+						    this.usedData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
+					    }
+					}
+					
+					for (var i=0;i<tempBuckets.length;i++){
+						if (tempBuckets[i]>0){
+							if (tempBuckets[i]>this.max){
+								this.max=tempBuckets[i];
+							}
+							if (tempBuckets[i]<this.min){
+								this.min=tempBuckets[i];
+							}
+							
+							this.usedData.push({start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)})
 						}
 					}
+
 					
 				}
 			}
@@ -87,10 +113,17 @@ function ageHistogram(where, stateToDisplay,parent){
 					}else{
 						this.wScale = this.parent.getScale(this.svgW)
 					}
+			this.maxI = 0	
+			for (var i in this.usedData){
+				if (this.usedData[i].start+this.usedData[i].span>this.maxI){
+					this.maxI = this.usedData[i].start+this.usedData[i].span
+				}
+			}
+			
 					
 			this.hScale = d3.scale.linear().
 					range([0,this.svgH]).
-					domain([0,this.usedData.length])
+					domain([0,this.maxI])
 	}
 	
 	this.refreshGraph = function(){
@@ -99,7 +132,7 @@ function ageHistogram(where, stateToDisplay,parent){
 			this.makeScale()
 			
 			
-			var h = this.svgW/this.usedData.length;
+			var h = this.svgW/this.maxI;
 			
 			
 			var xAxis = d3.svg.axis().scale(this.wScale);
@@ -144,9 +177,9 @@ function ageHistogram(where, stateToDisplay,parent){
 				.append("rect").attr("class","pop-rect").attr("x",this.svgXPad/2).attr("fill",this.barColor)
 				.attr("stroke","#000000")
 							.attr("y", function(d,i){
-								return (i*h+(that.svgYPad/2));
+								return (d.start*h+(that.svgYPad/2));
 							})
-							.attr("height",h)
+							.attr("height",function(d){return d.span*h})
 							.attr("width",function(d){
 								return that.wScale(d.value);
 							})
@@ -175,7 +208,7 @@ function ageHistogram(where, stateToDisplay,parent){
 		this.canvas.selectAll("g.y.axis").call(yAxis)
 		
 		
-		var h = this.svgW/this.usedData.length;
+		var h = this.svgW/this.maxI;
 		
 		this.canvas.selectAll(".pop-rect")
 				.data(this.usedData)
@@ -184,9 +217,9 @@ function ageHistogram(where, stateToDisplay,parent){
 				.attr("x",this.svgXPad/2).attr("fill",this.barColor)
 				.attr("stroke","#000000")
 							.attr("y", function(d,i){
-								return i*h+(that.svgYPad/2);
+								return d.start*h+(that.svgYPad/2);
 							})
-							.attr("height",h)
+							.attr("height",function(d){return d.span*h})
 							.attr("width",function(d){
 								return that.wScale(d.value);
 							})
@@ -208,12 +241,12 @@ function ageHistogram(where, stateToDisplay,parent){
 				.attr("fill",this.barColor)
 				.attr("y",this.svgH)
 				.attr("x",this.svgXPad/2)
-				.attr("height",h)
+				.attr("height",function(d){return d.span*h})
 				.transition()
 				.duration(500)
 				.attr("stroke","#000000")
 							.attr("y", function(d,i){
-								return i*h+(that.svgYPad/2);
+								return d.start*h+(that.svgYPad/2);
 							})
 							
 							.attr("width",function(d){
@@ -224,7 +257,7 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.makeHighlightData= function(){
 		for(var i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
-					this.d = popAgeSex["states"][i];
+					this.d = popAgeSex["states"][i]["buckets"];
 				}
 			}
 			
@@ -235,36 +268,52 @@ function ageHistogram(where, stateToDisplay,parent){
 			
 			var buck=0
 			if (this.d != NaN){
-				var maxY = Object.keys(this.d).length-1
+				//var maxY = Object.keys(this.d).length-1
 				if (this.buckets == false){
-					for(var i=this.ageThreshold;i<maxY;i++){
+					for(var i=this.ageThreshold;i<this.d.length;i++){
 						if (this.percentage){
-							buck = parseFloat(this.d[i.toString()]["perc"])
+							buck = parseFloat(this.d[i]["perc"])
 						}else{
-							buck = parseInt(this.d[i.toString()]["m"]) + parseInt(this.d[i.toString()]["f"])
+							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
 						}
 						if (buck>0){
-							this.usedHighlightData.push({key: i , value: buck})
+							this.usedHighlightData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
 						}
 					}
 				}else{
-					for(var i=0;i<maxY/10;i++){
-						buck = 0
-						for(j=0;j<=9;j++){
-							if ((i*10+j)<maxY){
-								if (this.percentage){
-									if ((i*10+j)>=this.ageThreshold){
-										buck += parseFloat(this.d[(i*10+j).toString()]["perc"])
-									}
-								}else{
-									if ((i*10+j)>=this.ageThreshold){
-										buck += parseInt(this.d[(i*10+j).toString()]["m"]) + parseInt(this.d[(i*10+j).toString()]["f"])
-									}
-								}
-							}
+					var tempBuckets = [];
+					var bucketMax = [];
+					
+					for (var i=0;i<150/this.bSize;i++){
+						tempBuckets[i]=0
+						bucketMax[i]=0
+					}
+					
+					
+					for(var i=0;i < this.d.length;i++){
+						if (this.percentage){
+							buck = parseFloat(this.d[i]["perc"])
+						}else{
+							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
 						}
-						if (buck>0){
-						this.usedHighlightData.push({key: i, value: (buck) })
+					    if (this.d[i]["span"]==1){
+						    var bucketNumber=Math.floor(this.d[i]["start"]/this.bSize)
+						    tempBuckets[bucketNumber] += buck
+						    if (this.d[i]["start"] > bucketMax[bucketNumber]){
+							    bucketMax[bucketNumber]=this.d[i]["start"]
+						    }
+					    }else{
+						    if (this.d[i]["start"] >= this.ageThreshold){
+						   		 this.usedHighlightData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
+						    }
+					    }
+					}
+					
+					for (var i=0;i<tempBuckets.length;i++){
+						if (tempBuckets[i]>0){
+							if (i*this.bSize >= this.ageThreshold){
+								this.usedHighlightData.push({start: i*this.bSize, value: tempBuckets[i],span: 1+ bucketMax[i]-i*this.bSize})
+							}
 						}
 					}
 					
@@ -282,7 +331,7 @@ function ageHistogram(where, stateToDisplay,parent){
 		
 		this.makeHighlightData();
 		
-		var h = this.svgW/this.usedData.length;
+		var h = this.svgW/this.maxI;
 		this.canvas.selectAll(".highlight-rect").remove()
 		
 		this.canvas.selectAll(".highlight-rect")
@@ -292,9 +341,9 @@ function ageHistogram(where, stateToDisplay,parent){
 							.attr("fill","green")
 							.attr("y", function(d,i){
 								console.log(d.key*h+(that.svgYPad/2))
-								return d.key*h+(that.svgYPad/2);
+								return d.start*h+(that.svgYPad/2);
 							})
-							.attr("height",h)
+							.attr("height",function(d){return d.span*h})
 							.attr("width",function(d){
 								return that.wScale(d.value);
 							})
@@ -315,10 +364,10 @@ function ageHistogram(where, stateToDisplay,parent){
 				.attr("class","highlight-rect")
 				.attr("fill","yellow")
 				.attr("y", function(d,i){
-								return d.key*h+(that.svgYPad/2);
+								return d.start*h+(that.svgYPad/2);
 							})
 				.attr("x",this.svgXPad/2)
-				.attr("height",h)
+				.attr("height",function(d){return d.span*h})
 				.attr("width",0)
 				.transition()
 				.duration(500)
