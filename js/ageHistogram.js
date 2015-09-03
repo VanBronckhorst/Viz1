@@ -1,7 +1,7 @@
 function ageHistogram(where, stateToDisplay,parent){
 	var that = this
-	this.svgH = 500
-	this.svgW = 500
+	this.svgH = 1000
+	this.svgW = 1000
 	this.svgXPad = 100
 	this.svgYPad = 100
 	this.buckets = false
@@ -12,6 +12,7 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.ageThreshold = 21;
 	this.bSize = 10
 	this.state=stateToDisplay;
+	this.useEstimates=true;
 	
 	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad));
 	this.state = stateToDisplay;
@@ -19,7 +20,16 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.makeData= function(){
 		for(var i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
-					this.d = popAgeSex["states"][i]["buckets"];
+					this.d = popAgeSex["states"][i]["buckets"].slice();
+					if (this.useEstimates){
+						for (var j in popAgeSex["states"][i]["estimates"]){
+							this.d.push(popAgeSex["states"][i]["estimates"][j])
+						}
+					}else{
+						for (var j in popAgeSex["states"][i]["lastBucket"]){
+							this.d.push(popAgeSex["states"][i]["lastBucket"][j])
+						}
+					}
 				}
 			}
 			
@@ -109,7 +119,7 @@ function ageHistogram(where, stateToDisplay,parent){
 			if (this.parent.isCompare()==false){
 					this.wScale = d3.scale.linear().
 							range([0,this.svgW]).
-							domain([Math.max(this.min-off,0),this.max+off])
+							domain([0,this.max+off])//[Math.max(this.min-off,0),this.max+off])
 					}else{
 						this.wScale = this.parent.getScale(this.svgW)
 					}
@@ -135,18 +145,19 @@ function ageHistogram(where, stateToDisplay,parent){
 			var h = this.svgW/this.maxI;
 			
 			
-			var xAxis = d3.svg.axis().scale(this.wScale);
+			var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
 			var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
 			
 			this.canvas.append("g").call(xAxis)
 				.attr("class","x axis")
+				.attr("font-size" , 200 + "%")
 				.attr("transform", "translate("+ this.svgXPad/2+"," + (this.svgH+(this.svgYPad/2)) + ")");
 				
 			//var svgRatio =  this.svgH / this.canvas.node().getBoundingClientRect()["height"]  * 100
 			
 			this.canvas.append("g").call(yAxis)
 					.attr("class","y axis")
-					.attr("font-size" , 150 + "%")
+					.attr("font-size" , 200 + "%")
 					.attr("transform", "translate("+ this.svgXPad/2+ ", " +(+(this.svgYPad/2))+ " )");
 					
 			//for(i=0;i< this.usedData.length;i++){
@@ -202,7 +213,7 @@ function ageHistogram(where, stateToDisplay,parent){
 		
 		this.makeData();
 		this.makeScale()
-		var xAxis = d3.svg.axis().scale(this.wScale);
+		var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
 		var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
 		this.canvas.selectAll("g.x.axis").call(xAxis)
 		this.canvas.selectAll("g.y.axis").call(yAxis)
@@ -257,7 +268,16 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.makeHighlightData= function(){
 		for(var i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
-					this.d = popAgeSex["states"][i]["buckets"];
+					this.d = popAgeSex["states"][i]["buckets"].slice();
+					if (this.useEstimates){
+						for (var j in popAgeSex["states"][i]["estimates"]){
+							this.d.push(popAgeSex["states"][i]["estimates"][j])
+						}
+					}else{
+						for (var j in popAgeSex["states"][i]["lastBucket"]){
+							this.d.push(popAgeSex["states"][i]["lastBucket"][j])
+						}
+					}
 				}
 			}
 			

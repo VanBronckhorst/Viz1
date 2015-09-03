@@ -1,3 +1,12 @@
+function copyArray(a){
+	var res = []
+	for (var x in a){
+		res.push(a[x])
+	}
+	return res
+}
+
+
 function agePieGraph(where, stateToDisplay){
 	this.svgH = 1000
 	this.svgW = 1000
@@ -9,6 +18,7 @@ function agePieGraph(where, stateToDisplay){
 	this.ageThreshold = 21;
 	this.bSize = 10
 	this.state=stateToDisplay
+	this.useEstimates = true;
 	
 	var that = this;
 	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad));
@@ -16,15 +26,27 @@ function agePieGraph(where, stateToDisplay){
 	this.refreshGraph = function(){
 			var radius = Math.min(this.svgH, this.svgW) / 2;
 			var inRadius = 250;
+			var labelr = radius + 30 
 			
 			this.canvas.selectAll("*").remove()
 			
 			
-			for(i=0;i<popAgeSex["states"].length;i++){
+			for(var i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
-					this.d = popAgeSex["states"][i]["buckets"];
+					this.d = popAgeSex["states"][i]["buckets"].slice();
+					if (this.useEstimates){
+						for (var j in popAgeSex["states"][i]["estimates"]){
+							this.d.push(popAgeSex["states"][i]["estimates"][j])
+						}
+					}else{
+						for (var j in popAgeSex["states"][i]["lastBucket"]){
+							this.d.push(popAgeSex["states"][i]["lastBucket"][j])
+						}
+					}
 				}
 			}
+			
+			
 			
 			
 
@@ -116,9 +138,11 @@ function agePieGraph(where, stateToDisplay){
 					
 					//Corrector code, put last bucket last
 					
+
 					var x = this.usedData[0]
 					this.usedData.splice(0, 1)
 					this.usedData.push(x)
+
 
 					
 				}
@@ -155,17 +179,28 @@ function agePieGraph(where, stateToDisplay){
 			
 			arcs.append("text")
 		    .attr("transform", function(d) {
-		        return "translate(" + arc.centroid(d) + ")";
+		        var c = arc.centroid(d),
+		        x = c[0],
+		        y = c[1],
+		        // pythagorean theorem for hypotenuse
+		        h = Math.sqrt(x*x + y*y);
+		    return "translate(" + (x/h * labelr) +  ',' +
+		       (y/h * labelr) +  ")"; 
 		    })
 		    .attr("text-anchor", "middle")
 		    .attr("font-size","250%")
 		    .text(function(d,i) {
-			    if (d.span==1){
+			    
+			    if (that.usedData[i].span==1){
 		       		return i%3==0?that.usedData[i].start:"";
 		       	}else{
 			       	return that.usedData[i].start+"-"+(that.usedData[i].start+that.usedData[i].span);
 		       	}
 		    });
+		    
+		    
+		    
+		    
 		    
 		    // INNER PIE
 			

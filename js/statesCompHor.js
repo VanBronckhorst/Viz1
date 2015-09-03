@@ -7,6 +7,7 @@ function statesCompHor(whereToDisplay){
 	this.percSelected = true;
 	this.buckets = false;
 	this.percentage=true;
+	this.useEstimates = false;
 	this.dataYear = 2014;
 	
 	this.events = [{name:"7/11",year:2001},{name:"End of WW2",year:1945},{name:"End of WW1",year:1918}];
@@ -38,7 +39,7 @@ function statesCompHor(whereToDisplay){
 						
 						var scale = d3.scale.linear().
 							range([0,width]).
-							domain([Math.max(min-off,0),max+off])
+							domain([0,max+off])//Math.max(min-off,0),max+off])
 						
 						return scale;
 						
@@ -61,7 +62,18 @@ function statesCompHor(whereToDisplay){
 	this.footer = this.display.append("div").attr("id","FooterBox")
 							.style("width","100%").style("height",(100-this.compareBoxH)+"%")
 	
+
+/*
 	this.footer.append("p").text("ChangeBuckets").style("display","inline").on("click",function(){
+		 that.changeBuckets()
+	});
+	this.footer.append("p").text("ChangePerc").style("display","inline").on("click",function(){
+			that.changePercentage()
+		}
+	);
+	
+*/
+	this.changeBuckets = function(){
 		that.buckets = !(that.buckets)
 		for (var ind=0;ind<that.histograms.length;ind++){
 			
@@ -77,8 +89,27 @@ function statesCompHor(whereToDisplay){
 			that.pies[i].buckets = that.buckets;
 			that.pies[i].refreshGraph()
 		}
-	});
-	this.footer.append("p").text("ChangePerc").style("display","inline").on("click",function(){
+	}
+	
+	this.changeEstimates = function(){
+		that.useEstimates = !(that.useEstimates)
+		for (var ind=0;ind<that.histograms.length;ind++){
+			
+			that.histograms[ind].useEstimates = (that.useEstimates);
+		}
+		
+		for (var ind=0;ind<that.histograms.length;ind++){
+			
+			that.histograms[ind].updateGraph();
+			that.histograms[ind].highlightData()
+		}
+		for (var i=0;i<that.pies.length;i++){
+			that.pies[i].useEstimates = that.useEstimates;
+			that.pies[i].refreshGraph()
+		}
+	}
+	
+	this.changePercentage = function(){
 		that.percentage = !(that.percentage);
 		for (var ind=0;ind<that.histograms.length;ind++){
 			
@@ -93,12 +124,14 @@ function statesCompHor(whereToDisplay){
 			that.pies[i].percentage = that.percentage;
 			that.pies[i].refreshGraph()
 		}
-	});
+	}
+
+	this.toolBox = new toolBox("#FooterBox",this)
 	
-	this.eventSelect = this.footer.append("select").attr("id","eventSelect").on("change",function(){that.changeEvent()});
+	this.eventSelect = this.footer.append("select").attr("id","eventSelect").style("font-size","100px").style("width","200px").style("height","200px").on("change",function(){that.changeEvent()});
 	
 	for (var e in this.events){
-		this.eventSelect.append("option").text(this.events[e].name).attr("value",this.events[e].year);
+		this.eventSelect.append("option").text(this.events[e].name).style("font-size","100px").attr("value",this.events[e].year);
 	}
 	
 	this.histograms = []
@@ -123,6 +156,7 @@ function statesCompHor(whereToDisplay){
 		for (var i=0;i<this.histograms.length;i++){
 			this.histograms[i].percentage = this.percentage;
 			this.histograms[i].buckets = this.buckets;
+			this.histograms[i].useEstimates = this.useEstimates;
 			this.histograms[i].ageThreshold = this.selectedAge;
 			this.histograms[i].refreshGraph()
 			this.histograms[i].highlightData()
@@ -130,6 +164,7 @@ function statesCompHor(whereToDisplay){
 		for (var i=0;i<this.pies.length;i++){
 			this.pies[i].percentage = this.percentage;
 			this.pies[i].buckets = this.buckets;
+			this.pies[i].useEstimates = this.useEstimates;
 			this.pies[i].ageThreshold = this.selectedAge;
 			this.pies[i].refreshGraph()
 		}
@@ -175,6 +210,7 @@ function statesCompHor(whereToDisplay){
 					   
 					   this.histograms[last].percentage = this.percentage;
 					   this.histograms[last].buckets = this.buckets;
+					   this.histograms[last].useEstimates = this.useEstimates;
 					   this.histograms[last].ageThreshold = this.selectedAge;
 					   this.histograms[last].refreshGraph();
 					   this.histograms[last].highlightData();
@@ -183,6 +219,7 @@ function statesCompHor(whereToDisplay){
 					   
 					   this.pies[last].percentage = this.percentage;
 					   this.pies[last].buckets = this.buckets;
+					   this.pies[last].useEstimates = this.useEstimates;
 					   this.pies[last].ageThreshold = this.selectedAge;
 					   this.pies[last].refreshGraph()
 				   }
