@@ -20,6 +20,7 @@ html, body {
 .stateBox {
 	padding: 5px;
 	overflow: hidden;
+	pointer-events: none;
 }
 
 .selected {
@@ -29,3 +30,34 @@ html, body {
 select{
 	font-size: large;
 }
+
+.svg-button{
+	fill: #e5e5e5;
+	stroke: black;
+	pointer-events: all;
+	
+}
+.svg-button:hover{
+	fill: #cccccc;
+	stroke: black;
+	pointer-events: all;
+	
+}
+
+.button-svg-text{
+	fill:black;
+	stroke:black;
+}
+
+.menuSvgListElem{
+	font-size:10px;
+	pointer-events: all;
+}
+
+.menuSelectedBox{
+	fill: #e5e5e5;
+	stroke: black;
+	pointer-events: all;
+
+}
+

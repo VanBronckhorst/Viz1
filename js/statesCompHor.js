@@ -126,14 +126,24 @@ function statesCompHor(whereToDisplay){
 		}
 	}
 
-	this.toolBox = new toolBox("#FooterBox",this)
+	this.footer.append("div").attr("id","ToolBox").style("width","50%").style("float","left")
 	
-	this.eventSelect = this.footer.append("select").attr("id","eventSelect").style("font-size","100px").style("width","200px").style("height","200px").on("change",function(){that.changeEvent()});
+	this.footer.append("div").attr("id","menuBox").style("width","20%")
+				.style("height","30%").style("float","left").style("margin-top","auto").style("margin-bottom","auto")
 	
+	
+	this.toolBox = new toolBox("#ToolBox",this)
+	this.menu = new svgMenu("#menuBox",this.events,function (d){ that.changeEvent(d.year)})
+	
+	
+	//this.eventSelect = this.footer.append("select").attr("id","eventSelect").on("change",function(){that.changeEvent()});
+	
+/*
 	for (var e in this.events){
-		this.eventSelect.append("option").text(this.events[e].name).style("font-size","100px").attr("value",this.events[e].year);
+		this.eventSelect.append("option").text(this.events[e].name).attr("value",this.events[e].year);
 	}
 	
+*/
 	this.histograms = []
 	this.pies = []
 	
@@ -304,8 +314,8 @@ function statesCompHor(whereToDisplay){
 				   
 	}
 	
-	this.changeEvent = function(){
-		 var y=this.dataYear-this.eventSelect.node().value +12;
+	this.changeEvent = function(evYear){
+		 var y=this.dataYear-evYear+12;
 		 
 		 for (var h in this.histograms){
 			 this.histograms[h].ageThreshold = y
