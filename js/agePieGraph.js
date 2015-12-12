@@ -7,11 +7,11 @@ function copyArray(a){
 }
 
 
-function agePieGraph(where, stateToDisplay){
+function agePieGraph(where, stateToDisplay,parent){
 	this.svgH = 1000
 	this.svgW = 1000
-	this.svgXPad = 100
-	this.svgYPad = 100
+	this.svgXPad = 150
+	this.svgYPad = 150
 	this.buckets = false;
 	this.compare = false;
 	this.percentage= true;
@@ -19,20 +19,28 @@ function agePieGraph(where, stateToDisplay){
 	this.bSize = 10
 	this.state=stateToDisplay
 	this.useEstimates = true;
+	this.parent = parent;
 	
 	var that = this;
-	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad));
+	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad)).attr("preserveAspectRatio","xMidYMin meet");
 	this.state = stateToDisplay;
-	this.refreshGraph = function(){
-			var radius = Math.min(this.svgH, this.svgW) / 2;
-			var inRadius = 250;
-			var labelr = radius + 30 
-			
-			this.canvas.selectAll("*").remove()
-			
-			
-			for(var i=0;i<popAgeSex["states"].length;i++){
+	
+	this.getTot = function(){
+		var total = 0
+		for(i in this.d){
+			if (this.percentage){
+							total += parseFloat(this.d[i]["perc"])
+						}else{
+							total += parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
+						}
+		}
+		return total;
+	}
+	
+	this.makeData = function(){
+		for(var i=0;i<popAgeSex["states"].length;i++){
 				if (popAgeSex["states"][i]["name"] == this.state){
+					
 					this.d = popAgeSex["states"][i]["buckets"].slice();
 					if (this.useEstimates){
 						for (var j in popAgeSex["states"][i]["estimates"]){
@@ -45,9 +53,25 @@ function agePieGraph(where, stateToDisplay){
 					}
 				}
 			}
+	}
+	
+	this.refreshGraph = function(){
 			
 			
 			
+			this.canvas.selectAll("*").remove()
+			
+			
+			this.makeData();
+			
+			if (this.parent.isCompare()==false){
+			var radius = Math.min(this.svgH, this.svgW) / 2;
+			}else{
+				var sc= this.parent.getPieScale(Math.min(this.svgH, this.svgW) / 2)
+				var radius = sc(this.getTot());
+			}
+			var inRadius = radius/2;
+			var labelr = radius + 30 
 			
 
 			var arc = d3.svg.arc()
@@ -142,7 +166,7 @@ function agePieGraph(where, stateToDisplay){
 					var x = this.usedData[0]
 					this.usedData.splice(0, 1)
 					this.usedData.push(x)
-
+					this.usedData.sort(function(d,d2){return d.start-d2.start})
 
 					
 				}
@@ -162,10 +186,10 @@ function agePieGraph(where, stateToDisplay){
 					        .enter()
 					        .append("g")
 					        .attr("class", "arc")
-					        .attr("transform", "translate(" + (radius + this.svgXPad/2) + ", " + (radius+ this.svgYPad/2) + ")");
+					        .attr("transform", "translate(" + (Math.min(this.svgH, this.svgW) / 2 + this.svgXPad/2) + ", " + (Math.min(this.svgH, this.svgW) / 2+ this.svgYPad/2) + ")");
 								
 								
-			var color = d3.scale.linear().domain([0,this.pieData.length/2,this.pieData.length]).range(["green","orange","red"]);
+			var color = d3.scale.linear().domain([0,this.pieData.length]).range(["#FF851B","#85144B"]);
 			
 			arcs.append("path")
 			.attr("stroke","white")
@@ -179,23 +203,28 @@ function agePieGraph(where, stateToDisplay){
 			
 			arcs.append("text")
 		    .attr("transform", function(d) {
+			    if (that.buckets==false){
 		        var c = arc.centroid(d),
 		        x = c[0],
 		        y = c[1],
 		        // pythagorean theorem for hypotenuse
 		        h = Math.sqrt(x*x + y*y);
-		    return "translate(" + (x/h * labelr) +  ',' +
-		       (y/h * labelr) +  ")"; 
+		    return "translate(" + (x/h * labelr) +  ',' + (y/h * labelr) +  ")"; 
+		       }else{
+			       var c = arc.centroid(d)
+			       return "translate(" + (c[0]) +  ',' + (c[1]) +  ")"; 
+		       }
 		    })
 		    .attr("text-anchor", "middle")
 		    .attr("font-size","250%")
 		    .text(function(d,i) {
-			    
-			    if (that.usedData[i].span==1){
-		       		return i%3==0?that.usedData[i].start:"";
-		       	}else{
-			       	return that.usedData[i].start+"-"+(that.usedData[i].start+that.usedData[i].span);
-		       	}
+			    if ((d.endAngle-d.startAngle)*radius>10){
+				    if (that.usedData[i].span==1){
+			       		return i%3==0?that.usedData[i].start:"";
+			       	}else{
+				       	return that.usedData[i].start+"-"+(that.usedData[i].start+that.usedData[i].span);
+			       	}
+			    }else{return ""}
 		    });
 		    
 		    
@@ -211,14 +240,14 @@ function agePieGraph(where, stateToDisplay){
 					        .enter()
 					        .append("g")
 					        .attr("class", "inner-arc")
-					        .attr("transform", "translate(" + (radius + this.svgXPad/2) + ", " + (radius+ this.svgYPad/2) + ")");
+					        .attr("transform", "translate(" + (Math.min(this.svgH, this.svgW) / 2 + this.svgXPad/2) + ", " + (Math.min(this.svgH, this.svgW) / 2+ this.svgYPad/2) + ")");
 								
 								
 			
 			
 			arcs.append("path")
 		    .attr("fill", function(d, i) {
-		        return i==1?"yellow":"gray";
+		        return i==1?"yellow":"#007494";
 		    })
 		    .attr("d", inArc);		
 		    

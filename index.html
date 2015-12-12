@@ -2,96 +2,53 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <title>D3 Test</title>
+        <title>Filippo Pellolio - Project1</title>
         <script type="text/javascript" src="d3/d3.v3.js"></script>
-        <style type="text/css">
-        div.bar {
-                display: inline-block;
-                width: 20px;
-                height: 75px;   /* We'll override this later */
-                background-color: teal;
-                margin-right: 2px;
-                }
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+		<script type="text/javascript" src="js/population2014US.json"></script>
+		<script type="text/javascript" src="js/events.json" ></script>
+		<script type="text/javascript" src="js/eventsPopup.js" ></script>
+        <script type="text/javascript" src="js/data.js"></script>
+        <script type="text/javascript" src="js/svgMenu.js"></script>
+        <script type="text/javascript" src="js/squareMenu.js"></script>
+        <script type="text/javascript" src="js/toolBox.js"></script>
+        <script type="text/javascript" src="js/statesList.js"></script>
+        <script type="text/javascript" src="js/ageHistogram.js"></script>
+        <script type="text/javascript" src="js/agePieGraph.js"></script>
+		<script type="text/javascript" src="js/statesCompHor.js?r=1"></script>
+		<script type="text/javascript" src="js/legend.js"></script>
+        <link rel="stylesheet"  type="text/css" href="css/vizProject1.css">
+        
         </style>
     </head>
     <body>
-        <p>Click on this text to update the chart with new data values (once).</p>
-        <script type="text/javascript">
-            var dataset = [];    
-            var maxN=30                    //Initialize empty array
-            for (var i = 0; i < 25; i++) {           //Loop 25 times
-                var newNumber = Math.random() * maxN;  //New random number (0-30)
-                dataset = dataset.concat(newNumber); //Add new number to array
-            }
+	<div id="all" style="width:100%; height:100%; position:fixed; left:0;top:0; background: #fff">
+    	<div id="left" style="height:100%;width:25%; background-color: #D4E2E8;float: left">
+	    	<div id="list" style="height:100%;width:70%; background-color: #D4E2E8;float: left">
+		   	</div>
+	    	<div id="legend" style="height:100%;width:30%; background-color: #D4E2E8;float: left">
+	    	
+    		
+    		</div>
+    	</div>
+	    <div id="data" style="height:100%;width:75%; background-color: #D4E2E8;float: right;">
+		    <!--<div id="hist" style="height:100%;width:50%; background-color: #cfcccc;float: left"></div>
+			<div id="aero" style="height:100%;width:50%; background-color: gray;float: right;">
+		    -->
+	    </div>
+	    </div>
+	</div>
 
-            /*d3.select("body").selectAll("p").data(dataset).enter().append("div").attr("class","bar").style("height",function (d){
-                        bh= d*5
-                        return  bh+ "px"
-                    })*/
-            var h = 300;
-            var w=800;
-            var xScale = d3.scale.ordinal()
-                .domain(d3.range(dataset.length))
-                .rangeRoundBands([0, w], 0.05);
-
-            var yScale = d3.scale.linear().domain([0,maxN]).range([h,0])    
-            var step = w/dataset.length ;
-            var svg = d3.select("body").append("svg").style("height",h).style("width",w);
-            var rects = svg.selectAll("circle").data(dataset).enter().append("rect");
-            rects.attr('x',function(d,i){
-                                            return xScale(i);
-                                        });
-            rects.attr('y',function(d){
-                                            return yScale(d);
-                                        });
-            rects.attr('width',xScale.rangeBand());
-            rects.attr('height',function(d){
-                                                return h-yScale(d);
-                                            });
-            rects.attr('fill', function(d){
-                                            return "rgb(0 , 0, "+ Math.round(d*255/30) +")";
-                                            });
-            
-            var text=svg.selectAll("text").data(dataset).enter().append('text');
-            text.text(function (d){ return Math.round(d)})
-            text.attr('x',function(d,i){
-                                            return xScale(i) +xScale.rangeBand()/2;
-                                        });
-            text.attr('y',function(d){
-                                            return yScale(d)+14;
-                                        });   
-             text.attr("font-family", "sans-serif")
-   .attr("font-size", "11px")
-   .attr("fill", "white").attr("text-anchor", "middle");
-          
-          d3.select("p")
-                       .on("click", function() {
-                                                      var dataset = [];    
-                                                          //Initialize empty array
-                                                        for (var i = 0; i < 25; i++) {           //Loop 25 times
-                                                            var newNumber = Math.random() * maxN;  //New random number (0-30)
-                                                            dataset = dataset.concat(newNumber); //Add new number to array
-                                                        }
-                                                        var r=svg.selectAll('rect').data(dataset).transition().delay(function(d,i){return i*100;}).duration(3000);
-                                                         r.attr('y',function(d){
-                                                                                        return yScale(d);
-                                                                                    });
-                                                        r.attr('height',function(d){
-                                                                                            return h-yScale(d);
-                                                                                        });
-                                                        r.attr('fill', function(d){
-                                                                                    return "rgb(0 , 0, "+ Math.round(d*255/30) +")";
-                                                                                    });
-                                                        var text=svg.selectAll("text").data(dataset).transition().delay(function(d,i){return i*100;}).duration(3000);
-                                                        text.text(function (d){ return Math.round(d)});
-                                                        text.attr('x',function(d,i){
-                                                                                        return xScale(i) +xScale.rangeBand()/2;
-                                                                                    });
-                                                        text.attr('y',function(d){
-                                                                                        return yScale(d)+14;
-                                                                                    });   
-                                                    });                 
-
-        </script>
+    	<script type="text/javascript" >
+	    	//hist = new ageHistogram("#hist", "Alaska")
+			sl = new StatesList();
+			sl.display("#list");
+			legend = new Legend();
+			
+			//pie = new agePieGraph("#aero", "Alaska")
+			stateComp = new statesCompHor("#data");
+			
+    	</script>
     </body>
-</html>     
+</html>

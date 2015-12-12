@@ -2,9 +2,22 @@
 	font-size: 250%;
 	text-align: justify;
 }
+.states-list-cat{
+	font-size: 300%;
+	text-align: center;
+	font-weight: bold;
+}
+.states-list-cat::after{
+	content: "---";
+}
+.states-list-us{
+	font-size: 250%;
+	
+	text-align: justify;
+}
 html, body { 
    height: 100%;
-   font-family: sans-serif;
+   font-family:  sans-serif;
 }
 
 .axis path,
@@ -15,17 +28,34 @@ html, body {
 
 .axis text {
     font-family: sans-serif;
+	fill:black;
+	stroke:black;
     
 }
+
+svg text{
+	fill:black;
+	stroke:none;
+}
+
+
 .stateBox {
 	padding: 5px;
 	overflow: hidden;
-	pointer-events: none;
+	color: black;
+	
 }
 
 .selected {
 	font-weight: bold;
+	text-decoration: underline;
 }
+
+/*
+#rightToolbox::before{
+	content: "Event Selected:";
+}
+*/
 
 select{
 	font-size: large;
@@ -51,13 +81,43 @@ select{
 
 .menuSvgListElem{
 	font-size:10px;
-	pointer-events: all;
+	
 }
 
 .menuSelectedBox{
 	fill: #e5e5e5;
 	stroke: black;
-	pointer-events: all;
+}
 
+@media all and (min-width: 3000px){
+	h3{
+		font-size: 80px;
+	}
+	.eventPopup{
+		font-size: 300%;
+	}
+}
+
+
+.eventPopup{
+	background-color: white;
+	border-radius: 25px;
+	padding: 25px;
+	
+}
+.eventPopup h2{
+	color: #7693e9;
+	margin-top: 0px;
+}
+
+.stateListSVG{
+  
+}
+
+.pop-rect{
+	stroke:white;
+}
+.highlight-rect{
+	stroke:black;
 }
 

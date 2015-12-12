@@ -1,21 +1,38 @@
+function findEventsForYear(y){
+	ev=[]
+	for (var i in yearEvents){
+		if (yearEvents[i]["year"]==y){
+			return yearEvents[i]["events"]
+			
+		}
+	}
+}
+
 function ageHistogram(where, stateToDisplay,parent){
 	var that = this
 	this.svgH = 1000
 	this.svgW = 1000
-	this.svgXPad = 100
-	this.svgYPad = 100
+	this.svgXPad = 150
+	this.svgYPad = 150
 	this.buckets = false
 	this.compare = true
 	this.percentage= false
 	this.parent = parent
-	this.barColor = "#FF9900"
+	this.barColor = "#007494"
 	this.ageThreshold = 21;
+	this.ageCon=12;
 	this.bSize = 10
 	this.state=stateToDisplay;
 	this.useEstimates=true;
+	this.popup = new eventsPopup();
 	
-	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad));
+	this.canvas = d3.select(where).append("svg").attr("height","100%").attr("width","100%").attr("viewBox","0 0 "+(this.svgH+this.svgYPad)+ " " + (this.svgW+this.svgXPad)).attr("preserveAspectRatio","xMidYMin meet");
+	this.canvas.append("text").text("Age Distribution").style("font-size","250%").attr("y",30).attr("x",(this.svgH+this.svgYPad)/2).style("text-anchor","middle")
 	this.state = stateToDisplay;
+	
+	
+	this.xLabel= this.canvas.append("text").text("Percentage").style("font-size","250%").attr("y",(this.svgH+this.svgYPad)-10).attr("x",(this.svgH)).style("text-anchor","end")
+	this.yLabel= this.canvas.append("text").text("Age").style("font-size","250%").attr("transform","rotate(-90)").attr("y",0).attr("x",-100).style("text-anchor","middle");
 	
 	this.makeData= function(){
 		for(var i=0;i<popAgeSex["states"].length;i++){
@@ -23,6 +40,7 @@ function ageHistogram(where, stateToDisplay,parent){
 					this.d = popAgeSex["states"][i]["buckets"].slice();
 					if (this.useEstimates){
 						for (var j in popAgeSex["states"][i]["estimates"]){
+							popAgeSex["states"][i]["estimates"][j]["est"]=true
 							this.d.push(popAgeSex["states"][i]["estimates"][j])
 						}
 					}else{
@@ -38,6 +56,11 @@ function ageHistogram(where, stateToDisplay,parent){
 			this.min = Infinity
 			var buck = 0
 			
+			if (this.percentage){
+				this.xLabel.text("Percentage")
+				}else{
+				this.xLabel.text("N of people")	
+				}
 			
 			
 			this.usedData = []
@@ -53,7 +76,7 @@ function ageHistogram(where, stateToDisplay,parent){
 							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
 						}
 						
-						this.usedData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
+						this.usedData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"],est:this.d[i]["est"]})
 						if (buck>this.max){
 							this.max=buck;
 						}
@@ -70,6 +93,7 @@ function ageHistogram(where, stateToDisplay,parent){
 					}
 					
 					for(var i=0;i < this.d.length;i++){
+						estimate = false
 						if (this.percentage){
 							buck = parseFloat(this.d[i]["perc"])
 						}else{
@@ -100,8 +124,13 @@ function ageHistogram(where, stateToDisplay,parent){
 							if (tempBuckets[i]<this.min){
 								this.min=tempBuckets[i];
 							}
-							
-							this.usedData.push({start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)})
+							if (this.useEstimates==true & bucketMax[i]>=85){
+								temp={start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)}
+								temp["est"]=true;
+								this.usedData.push(temp)
+								}else{
+								this.usedData.push({start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)})
+							}
 						}
 					}
 
@@ -145,21 +174,7 @@ function ageHistogram(where, stateToDisplay,parent){
 			var h = this.svgW/this.maxI;
 			
 			
-			var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
-			var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
-			
-			this.canvas.append("g").call(xAxis)
-				.attr("class","x axis")
-				.attr("font-size" , 200 + "%")
-				.attr("transform", "translate("+ this.svgXPad/2+"," + (this.svgH+(this.svgYPad/2)) + ")");
-				
-			//var svgRatio =  this.svgH / this.canvas.node().getBoundingClientRect()["height"]  * 100
-			
-			this.canvas.append("g").call(yAxis)
-					.attr("class","y axis")
-					.attr("font-size" , 200 + "%")
-					.attr("transform", "translate("+ this.svgXPad/2+ ", " +(+(this.svgYPad/2))+ " )");
-					
+								
 			//for(i=0;i< this.usedData.length;i++){
 				/*Vertical
 					
@@ -186,7 +201,8 @@ function ageHistogram(where, stateToDisplay,parent){
 			    this.canvas.selectAll(".pop-rect")
 				.data(this.usedData).enter()
 				.append("rect").attr("class","pop-rect").attr("x",this.svgXPad/2).attr("fill",this.barColor)
-				.attr("stroke","#000000")
+				.attr("opacity",function(d){return d["est"]==true?0.4:1})
+				
 							.attr("y", function(d,i){
 								return (d.start*h+(that.svgYPad/2));
 							})
@@ -194,18 +210,25 @@ function ageHistogram(where, stateToDisplay,parent){
 							.attr("width",function(d){
 								return that.wScale(d.value);
 							})
+							.on("click",function(d){evs=findEventsForYear(2014-d.start); 
+													that.popup.update(2014-d.start,evs);
+													that.popup.show(d3.event.pageX,d3.event.pageY)})
 				
-				/*
-				this.canvas.datum(this.d[i.toString()]["m"])
-				.append("rect").attr("x",0).attr("fill",maleColor)
-				.attr("stroke","#000000")
-							.attr("y", h*i)
-							.attr("height",h)
-							.attr("width",function(d){
-								return w(d);
-							});	*/
+				var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
+				var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
 				
-			//}
+				this.canvas.append("g").call(xAxis)
+					.attr("class","x axis")
+					.attr("font-size" , 200 + "%")
+					.attr("transform", "translate("+ this.svgXPad/2+"," + (this.svgH+(this.svgYPad/2)) + ")");
+					
+				//var svgRatio =  this.svgH / this.canvas.node().getBoundingClientRect()["height"]  * 100
+				
+				this.canvas.append("g").call(yAxis)
+						.attr("class","y axis")
+						.attr("font-size" , 200 + "%")
+						.attr("transform", "translate("+ this.svgXPad/2+ ", " +(+(this.svgYPad/2))+ " )");
+
 			
 	}
 	
@@ -213,20 +236,20 @@ function ageHistogram(where, stateToDisplay,parent){
 		
 		this.makeData();
 		this.makeScale()
-		var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
-		var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
-		this.canvas.selectAll("g.x.axis").call(xAxis)
-		this.canvas.selectAll("g.y.axis").call(yAxis)
+		
 		
 		
 		var h = this.svgW/this.maxI;
 		
 		this.canvas.selectAll(".pop-rect")
 				.data(this.usedData)
+				
+				.attr("opacity",function(d){return d["est"]==true?0.4:1})
+				.on("click",function(d){evs=findEventsForYear(2014-d.start); that.popup.update(2014-d.start,evs);that.popup.show(d3.event.pageX,d3.event.pageY)})
 				.transition()
 				.duration(500)
 				.attr("x",this.svgXPad/2).attr("fill",this.barColor)
-				.attr("stroke","#000000")
+				
 							.attr("y", function(d,i){
 								return d.start*h+(that.svgYPad/2);
 							})
@@ -249,13 +272,15 @@ function ageHistogram(where, stateToDisplay,parent){
 				.enter()
 				.append("rect")
 				.attr("class","pop-rect")
+				.on("click",function(d){evs=findEventsForYear(2014-d.start); that.popup.update(2014-d.start,evs);that.popup.show(d3.event.pageX,d3.event.pageY)})
 				.attr("fill",this.barColor)
 				.attr("y",this.svgH)
 				.attr("x",this.svgXPad/2)
 				.attr("height",function(d){return d.span*h})
+				.attr("opacity",function(d){return d["est"]==true?0.6:1})
 				.transition()
 				.duration(500)
-				.attr("stroke","#000000")
+				
 							.attr("y", function(d,i){
 								return d.start*h+(that.svgYPad/2);
 							})
@@ -263,6 +288,28 @@ function ageHistogram(where, stateToDisplay,parent){
 							.attr("width",function(d){
 								return that.wScale(d.value);
 							})
+		
+		var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
+		var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
+		this.canvas.selectAll("g.x.axis").remove()
+		this.canvas.selectAll("g.y.axis").remove()
+		
+		var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
+				var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
+				
+		this.canvas.append("g").call(xAxis)
+			.attr("class","x axis")
+			.attr("font-size" , 200 + "%")
+			.attr("transform", "translate("+ this.svgXPad/2+"," + (this.svgH+(this.svgYPad/2)) + ")");
+			
+		//var svgRatio =  this.svgH / this.canvas.node().getBoundingClientRect()["height"]  * 100
+		
+		this.canvas.append("g").call(yAxis)
+						.attr("class","y axis")
+						.attr("font-size" , 200 + "%")
+						.attr("transform", "translate("+ this.svgXPad/2+ ", " +(+(this.svgYPad/2))+ " )");
+		
+		
 	}
 	
 	this.makeHighlightData= function(){
@@ -271,6 +318,7 @@ function ageHistogram(where, stateToDisplay,parent){
 					this.d = popAgeSex["states"][i]["buckets"].slice();
 					if (this.useEstimates){
 						for (var j in popAgeSex["states"][i]["estimates"]){
+							popAgeSex["states"][i]["estimates"][j]["est"]=true
 							this.d.push(popAgeSex["states"][i]["estimates"][j])
 						}
 					}else{
@@ -297,7 +345,7 @@ function ageHistogram(where, stateToDisplay,parent){
 							buck = parseInt(this.d[i]["m"]) + parseInt(this.d[i]["f"])
 						}
 						if (buck>0){
-							this.usedHighlightData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"]})
+							this.usedHighlightData.push({start: this.d[i]["start"] , value: buck,span: this.d[i]["span"],est:this.d[i]["est"]})
 						}
 					}
 				}else{
@@ -332,7 +380,13 @@ function ageHistogram(where, stateToDisplay,parent){
 					for (var i=0;i<tempBuckets.length;i++){
 						if (tempBuckets[i]>0){
 							if (i*this.bSize >= this.ageThreshold){
-								this.usedHighlightData.push({start: i*this.bSize, value: tempBuckets[i],span: 1+ bucketMax[i]-i*this.bSize})
+								if (this.useEstimates==true & bucketMax[i]>=85){
+								temp={start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)}
+								temp["est"]=true;
+								this.usedHighlightData.push(temp)
+								}else{
+								this.usedHighlightData.push({start: i*this.bSize, value: tempBuckets[i],span: (bucketMax[i]-i*this.bSize+1)})
+							}
 							}
 						}
 					}
@@ -356,9 +410,10 @@ function ageHistogram(where, stateToDisplay,parent){
 		
 		this.canvas.selectAll(".highlight-rect")
 				.data(this.usedHighlightData)
+				.on("click",function(d){evs=findEventsForYear(2014-d.start); that.popup.update(2014-d.start,evs);that.popup.show(d3.event.pageX,d3.event.pageY)})
 				.transition()
 				.duration(500)
-							.attr("fill","green")
+							
 							.attr("y", function(d,i){
 								console.log(d.key*h+(that.svgYPad/2))
 								return d.start*h+(that.svgYPad/2);
@@ -381,6 +436,7 @@ function ageHistogram(where, stateToDisplay,parent){
 				.data(this.usedHighlightData)
 				.enter()
 				.append("rect")
+				.on("click",function(d){evs=findEventsForYear(2014-d.start); that.popup.update(2014-d.start,evs);that.popup.show(d3.event.pageX,d3.event.pageY)})
 				.attr("class","highlight-rect")
 				.attr("fill","yellow")
 				.attr("y", function(d,i){
@@ -389,12 +445,27 @@ function ageHistogram(where, stateToDisplay,parent){
 				.attr("x",this.svgXPad/2)
 				.attr("height",function(d){return d.span*h})
 				.attr("width",0)
+				.attr("opacity",function(d){return d["est"]==true?0.4:1})
 				.transition()
 				.duration(500)
-				.attr("stroke","#000000")
+				
 							.attr("width",function(d){
 								return that.wScale(d.value);
 							})
+		var xAxis = d3.svg.axis().scale(this.wScale).ticks(5).innerTickSize(-this.svgH).outerTickSize(0);
+		var yAxis = d3.svg.axis().scale(this.hScale).orient("left");
+		this.canvas.selectAll("g.x.axis").remove()
+		this.canvas.selectAll("g.y.axis").remove()
+		
+		this.canvas.append("g").call(xAxis)
+			.attr("class","x axis")
+			.attr("font-size" , 200 + "%")
+			.attr("transform", "translate("+ this.svgXPad/2+"," + (this.svgH+(this.svgYPad/2)) + ")");
+					
+		this.canvas.append("g").call(yAxis)
+				.attr("class","y axis")
+				.attr("font-size" , 200 + "%")
+				.attr("transform", "translate("+ this.svgXPad/2+ ", " +(+(this.svgYPad/2))+ " )");
 	
 	}
 	
@@ -409,6 +480,8 @@ function ageHistogram(where, stateToDisplay,parent){
 	this.removeGraph = function(){
 		this.canvas.transition().duration(500).style("opacity",0).each("end",function(){d3.select(this).remove()});
 	}
+	
+	
 	
 	
 }
